@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netcoreapp3.1;netstandard2.0</TargetFrameworks>
+    <Configurations>Debug;Release;Release Nuget</Configurations>
+    <RootNamespace>Memenim.Scripting</RootNamespace>
+    <AssemblyName>Memenim.Scripting</AssemblyName>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <PackageId>Memenim.Scripting</PackageId>
+    <Product>Memenim.Scripting</Product>
+    <Version>0.1.0</Version>
+    <Description>Library for interaction with MEMENIM scripts system</Description>
+    <PackageTags>dotnetcore, netstandard, netcore, library</PackageTags>
+    <Authors>Dmitry Ponomarev</Authors>
+    <Company>MEMENIM</Company>
+    <Copyright>Copyright (c) MEMENIM, 2021</Copyright>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/MEMENIM-Project/MEMENIM-Scripting</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/MEMENIM-Project/MEMENIM-Scripting</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS0067;SS003;SS004;U2U1009</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Nuget|AnyCPU'">
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <Target Name="PostPack" AfterTargets="Pack" Condition="'$(Configuration)|$(Platform)'=='Release Nuget|AnyCPU'">
+    <Exec Command="&quot;CopyPackage.exe&quot; &quot;..\..\_packages&quot; &quot;$(MSBuildProjectFullPath)&quot; &quot;$(Configuration)&quot;" WorkingDirectory="_tools\CopyPackage" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
