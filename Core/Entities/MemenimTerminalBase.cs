@@ -1,5 +1,4 @@
 ﻿using System;
-using Memenim.Scripting.Core.Entities.NotImplemented;
 
 namespace Memenim.Scripting.Core.Entities
 {
@@ -9,11 +8,22 @@ namespace Memenim.Scripting.Core.Entities
         public Type NotImplementedType { get; }
         public MemenimScriptBindTargetType BindTarget { get; }
 
+        public bool IsImplemented
+        {
+            get
+            {
+                var type = GetType();
+
+                return type != BaseType
+                       && type != NotImplementedType;
+            }
+        }
+
         protected MemenimTerminalBase()
         {
-            BaseType = GetType();
-            NotImplementedType = typeof(MemenimTerminalNotImplemented);
-            BindTarget = MemenimScriptBindTargetType.Terminal;
+            BaseType = MemenimScriptUtils.GetBaseType(GetType());
+            NotImplementedType = MemenimScriptUtils.GetNotImplementedType(BaseType);
+            BindTarget = MemenimScriptUtils.GetBindTarget(BaseType);
         }
 
         public abstract void WriteLine(string text);

@@ -8,6 +8,7 @@ namespace Memenim.Scripting.Core
         Client = 1,
         Terminal = 2,
         Log = 3,
-        Dialog = 4
+        Dialog = 4,
+        Localization = 5
     }
 }

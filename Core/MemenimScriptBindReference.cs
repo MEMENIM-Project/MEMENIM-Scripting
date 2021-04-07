@@ -27,7 +27,7 @@ namespace Memenim.Scripting.Core
             _field = field;
 
             Type = field.FieldType;
-            Target = MemenimScript.GetBindTarget(
+            Target = MemenimScriptUtils.GetBindTarget(
                 field.FieldType);
         }
 
@@ -39,7 +39,7 @@ namespace Memenim.Scripting.Core
             if (value != null)
                 return (IMemenimScriptBindable)value;
 
-            var notImplementedType = MemenimScript
+            var notImplementedType = MemenimScriptUtils
                 .GetNotImplementedType(Target);
 
             value = (IMemenimScriptBindable)Activator.CreateInstance(

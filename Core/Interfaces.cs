@@ -2,10 +2,12 @@
 
 namespace Memenim.Scripting.Core
 {
-    public interface IMemenimScriptBindable
+    internal interface IMemenimScriptBindable
     {
         Type BaseType { get; }
         Type NotImplementedType { get; }
         MemenimScriptBindTargetType BindTarget { get; }
+
+        public bool IsImplemented { get; }
     }
 }
