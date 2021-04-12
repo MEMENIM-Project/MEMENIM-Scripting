@@ -8,10 +8,12 @@ namespace Memenim.Scripting.Core
     [RequiredMemenimVersion("0.15.10", null)]
     public abstract class MemenimScriptBase
     {
+        public string Name { get; protected set; }
         public ReadOnlyDictionary<string, MemenimScriptCommand> Commands { get; }
 
         protected MemenimScriptBase()
         {
+            Name = "Unknown";
             Commands = GetRegisteredCommands();
         }
 
@@ -36,14 +38,19 @@ namespace Memenim.Scripting.Core
                     commandDescription = string.Empty;
 
                 commands.Add(commandName, new MemenimScriptCommand(
-                    methodInfo, commandName, commandDescription));
+                    this, methodInfo, commandName, commandDescription));
             }
 
             return new ReadOnlyDictionary<string, MemenimScriptCommand>(
                 commands);
         }
 
-        public bool MemenimVersionIsSatisfied(MemenimVersion version)
+        internal string GetBaseLocalizationKey()
+        {
+            return $"{Name}_script";
+        }
+
+        public bool MemenimVersionSatisfied(MemenimVersion version)
         {
             var type = GetType();
 

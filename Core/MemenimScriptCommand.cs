@@ -7,6 +7,7 @@ namespace Memenim.Scripting.Core
 {
     public sealed class MemenimScriptCommand
     {
+        private MemenimScriptBase Script { get; }
         private MethodInfo Method { get; }
 
         public string Name { get; }
@@ -14,8 +15,10 @@ namespace Memenim.Scripting.Core
         public ReadOnlyCollection<MemenimScriptCommandParameter> Parameters { get; }
 
         public MemenimScriptCommand(
-            MethodInfo method, string name, string description)
+            MemenimScriptBase script, MethodInfo method,
+            string name, string description)
         {
+            Script = script;
             Method = method;
 
             Name = NormalizeName(name);
@@ -72,7 +75,10 @@ namespace Memenim.Scripting.Core
 
         internal string GetBaseLocalizationKey()
         {
-            return $"{Name}_command";
+            var baseLocalizationKey =
+                Script?.GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}|{Name}_command";
         }
 
         private string GetDescriptionLocalizationKey()
