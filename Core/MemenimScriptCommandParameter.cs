@@ -7,27 +7,49 @@ namespace Memenim.Scripting.Core
         private MemenimScriptCommand Command { get; }
 
         public string Name { get; }
-        public string Description { get; }
+        public string OriginalDescription { get; }
+        public string Description
+        {
+            get
+            {
+                return GetDescription() ?? string.Empty;
+            }
+        }
         public Type Type { get; }
 
-        public MemenimScriptCommandParameter(
+        internal MemenimScriptCommandParameter(
             MemenimScriptCommand command, string name,
             string description, Type type)
         {
             Command = command;
 
             Name = NormalizeName(name);
-            Description = description;
+            OriginalDescription = NormalizeDescription(description);
             Type = type;
-
-            Description = GetDescription() ?? string.Empty;
         }
 
         private static string NormalizeName(string name)
         {
             return name
-                .Trim(' ')
-                .Replace(' ', '-');
+                .Trim(' ', '_')
+                .Replace(' ', '-')
+                .Replace('_', '-');
+        }
+
+        private static string NormalizeDescription(string description)
+        {
+            var normalizedDescription = description;
+
+            if (normalizedDescription == null)
+                return string.Empty;
+
+            normalizedDescription = normalizedDescription
+                .Trim(' ');
+
+            if (string.IsNullOrEmpty(normalizedDescription))
+                return string.Empty;
+
+            return normalizedDescription;
         }
 
         internal string GetBaseLocalizationKey()
@@ -35,7 +57,7 @@ namespace Memenim.Scripting.Core
             var baseLocalizationKey =
                 Command?.GetBaseLocalizationKey();
 
-            return $"{baseLocalizationKey}|{Name}_parameter";
+            return $"{baseLocalizationKey}|[{Name}]_parameter";
         }
 
         private string GetDescriptionLocalizationKey()
@@ -49,7 +71,7 @@ namespace Memenim.Scripting.Core
         private string GetDescription()
         {
             if (!MemenimScript.Localization.IsImplemented)
-                return Description;
+                return OriginalDescription;
 
             var localizedDescription = MemenimScript.Localization
                 .TryGetLocalized(GetDescriptionLocalizationKey());
@@ -57,7 +79,7 @@ namespace Memenim.Scripting.Core
             if (!string.IsNullOrWhiteSpace(localizedDescription))
                 return localizedDescription;
 
-            return Description;
+            return OriginalDescription;
         }
     }
 }

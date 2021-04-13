@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using System.Reflection;
 
 namespace Memenim.Scripting.Core
@@ -11,10 +13,17 @@ namespace Memenim.Scripting.Core
         private MethodInfo Method { get; }
 
         public string Name { get; }
-        public string Description { get; }
+        public string OriginalDescription { get; }
+        public string Description
+        {
+            get
+            {
+                return GetDescription() ?? string.Empty;
+            }
+        }
         public ReadOnlyCollection<MemenimScriptCommandParameter> Parameters { get; }
 
-        public MemenimScriptCommand(
+        internal MemenimScriptCommand(
             MemenimScriptBase script, MethodInfo method,
             string name, string description)
         {
@@ -22,9 +31,7 @@ namespace Memenim.Scripting.Core
             Method = method;
 
             Name = NormalizeName(name);
-            Description = description;
-
-            Description = GetDescription() ?? string.Empty;
+            OriginalDescription = NormalizeDescription(description);
 
             var parameters = new List<MemenimScriptCommandParameter>();
 
@@ -69,8 +76,25 @@ namespace Memenim.Scripting.Core
         private static string NormalizeName(string name)
         {
             return name
-                .Trim(' ')
-                .Replace(' ', '-');
+                .Trim(' ', '_')
+                .Replace(' ', '-')
+                .Replace('_', '-');
+        }
+
+        private static string NormalizeDescription(string description)
+        {
+            var normalizedDescription = description;
+
+            if (normalizedDescription == null)
+                return string.Empty;
+
+            normalizedDescription = normalizedDescription
+                .Trim(' ');
+
+            if (string.IsNullOrEmpty(normalizedDescription))
+                return string.Empty;
+
+            return normalizedDescription;
         }
 
         internal string GetBaseLocalizationKey()
@@ -78,7 +102,7 @@ namespace Memenim.Scripting.Core
             var baseLocalizationKey =
                 Script?.GetBaseLocalizationKey();
 
-            return $"{baseLocalizationKey}|{Name}_command";
+            return $"{baseLocalizationKey}|[{Name}]_command";
         }
 
         private string GetDescriptionLocalizationKey()
@@ -92,7 +116,7 @@ namespace Memenim.Scripting.Core
         private string GetDescription()
         {
             if (!MemenimScript.Localization.IsImplemented)
-                return Description;
+                return OriginalDescription;
 
             var localizedDescription = MemenimScript.Localization
                 .TryGetLocalized(GetDescriptionLocalizationKey());
@@ -100,7 +124,58 @@ namespace Memenim.Scripting.Core
             if (!string.IsNullOrWhiteSpace(localizedDescription))
                 return localizedDescription;
 
-            return Description;
+            return OriginalDescription;
+        }
+
+
+
+        public void Execute(IList<object> parameters)
+        {
+            parameters ??= Array.Empty<object>();
+
+            if (parameters.Count != Parameters.Count)
+            {
+                throw new ArgumentException(
+                    $"Passed parameters count[{parameters.Count}] " +
+                    $"does not match expected parameters count[{Parameters.Count}] " +
+                    $"for command[{Name}] in script[{Script.Name}]",
+                    nameof(parameters));
+            }
+
+            for (int i = 0; i < parameters.Count; ++i)
+            {
+                if (parameters[i].GetType() == Parameters[i].Type)
+                    continue;
+
+                object parameter;
+
+                try
+                {
+                    parameter = Convert.ChangeType(parameters[i], Parameters[i].Type);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidCastException(
+                        $"Passed parameter[Index={i}, Type={parameters[i].GetType().FullName ?? parameters[i].GetType().Name}] " +
+                        $"cannot be converted to type[{Parameters[i].Type.FullName ?? Parameters[i].Type.Name}] of expected parameter[{Parameters[i].Name}] " +
+                        $"for command[{Name}] in script[{Script.Name}]",
+                        ex);
+                }
+
+                parameters[i] = parameter;
+            }
+
+            var source = Method.IsStatic
+                ? null
+                : Script;
+
+            var flags = BindingFlags.Public | BindingFlags.NonPublic;
+            flags |= Method.IsStatic
+                ? BindingFlags.Static
+                : BindingFlags.Instance;
+
+            Method.Invoke(source, flags, null,
+                parameters.ToArray(), CultureInfo.InvariantCulture);
         }
     }
 }
