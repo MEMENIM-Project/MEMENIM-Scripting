@@ -2,18 +2,18 @@
 
 namespace Memenim.Scripting.Core
 {
-    public class MemenimVersionRange
+    public class ClientVersionRange
     {
-        public MemenimVersion MinVersion { get; }
-        public MemenimVersion MaxVersion { get; }
+        public ClientVersion MinVersion { get; }
+        public ClientVersion MaxVersion { get; }
 
         public bool AnyMinVersion
         {
             get
             {
                 return MinVersion == null
-                       || MinVersion == MemenimVersion.MinValue
-                       || MinVersion == MemenimVersion.Any;
+                       || MinVersion == ClientVersion.MinValue
+                       || MinVersion == ClientVersion.Any;
             }
         }
         public bool AnyMaxVersion
@@ -21,8 +21,8 @@ namespace Memenim.Scripting.Core
             get
             {
                 return MaxVersion == null
-                       || MaxVersion == MemenimVersion.MaxValue
-                       || MaxVersion == MemenimVersion.Any;
+                       || MaxVersion == ClientVersion.MaxValue
+                       || MaxVersion == ClientVersion.Any;
             }
         }
         public bool AnyVersion
@@ -33,13 +33,13 @@ namespace Memenim.Scripting.Core
             }
         }
 
-        public MemenimVersionRange(
-            MemenimVersion minVersion = null, MemenimVersion maxVersion = null)
+        public ClientVersionRange(
+            ClientVersion minVersion = null, ClientVersion maxVersion = null)
         {
             if (minVersion == null)
-                minVersion = MemenimVersion.Any;
+                minVersion = ClientVersion.Any;
             if (maxVersion == null)
-                maxVersion = MemenimVersion.Any;
+                maxVersion = ClientVersion.Any;
 
             if (minVersion > maxVersion)
             {
@@ -53,7 +53,7 @@ namespace Memenim.Scripting.Core
             MaxVersion = maxVersion;
         }
 
-        public bool IsSatisfied(MemenimVersion version)
+        public bool IsSatisfied(ClientVersion version)
         {
             if (AnyVersion)
                 return true;

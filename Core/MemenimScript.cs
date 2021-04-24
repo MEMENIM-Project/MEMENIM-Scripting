@@ -10,14 +10,13 @@ namespace Memenim.Scripting.Core
     {
         private static readonly Dictionary<MemenimScriptBindTargetType, MemenimScriptBindReference> BindReferenceMap;
 
-#pragma warning disable IDE0044 // Make field read only
 #pragma warning disable CS0649 // Field is never assigned
         private static MemenimClientBase _client;
         public static MemenimClientBase Client
         {
             get
             {
-                return GetImplementation(_client);
+                return GetImplementation(ref _client);
             }
         }
         private static MemenimTerminalBase _terminal;
@@ -25,7 +24,7 @@ namespace Memenim.Scripting.Core
         {
             get
             {
-                return GetImplementation(_terminal);
+                return GetImplementation(ref _terminal);
             }
         }
         private static MemenimLogBase _log;
@@ -33,7 +32,7 @@ namespace Memenim.Scripting.Core
         {
             get
             {
-                return GetImplementation(_log);
+                return GetImplementation(ref _log);
             }
         }
         private static MemenimDialogBase _dialog;
@@ -41,7 +40,7 @@ namespace Memenim.Scripting.Core
         {
             get
             {
-                return GetImplementation(_dialog);
+                return GetImplementation(ref _dialog);
             }
         }
         private static MemenimLocalizationBase _localization;
@@ -49,11 +48,21 @@ namespace Memenim.Scripting.Core
         {
             get
             {
-                return GetImplementation(_localization);
+                return GetImplementation(ref _localization);
+            }
+        }
+
+
+
+        private static MemenimScriptSettings _settings;
+        public static MemenimScriptSettings Settings
+        {
+            get
+            {
+                return GetSettingsImplementation(ref _settings);
             }
         }
 #pragma warning restore CS0649 // Field is never assigned
-#pragma warning restore IDE0044 // Make field read only
 
         static MemenimScript()
         {
@@ -65,7 +74,7 @@ namespace Memenim.Scripting.Core
 
 
         private static T GetImplementation<T>(
-            T value)
+            ref T value)
             where T : class, IMemenimScriptBindable
         {
             if (value != null)
@@ -75,6 +84,21 @@ namespace Memenim.Scripting.Core
                 MemenimScriptUtils.GetNotImplementedType(typeof(T));
 
             value = (T)Activator.CreateInstance(
+                notImplementedType, true);
+
+            return value;
+        }
+
+        private static MemenimScriptSettings GetSettingsImplementation(
+            ref MemenimScriptSettings value)
+        {
+            if (value != null)
+                return value;
+
+            var notImplementedType =
+                typeof(MemenimScriptSettings);
+
+            value = (MemenimScriptSettings)Activator.CreateInstance(
                 notImplementedType, true);
 
             return value;
@@ -103,6 +127,8 @@ namespace Memenim.Scripting.Core
 
                 BindImplementation(value, MemenimScriptUtils.GetBaseType(value));
             }
+
+            BindSettingsImplementation(ref _settings);
         }
 
 
@@ -139,8 +165,8 @@ namespace Memenim.Scripting.Core
             var assemblies = new List<Assembly>
             {
                 Assembly.GetEntryAssembly(),
-                Assembly.GetExecutingAssembly(),
-                Assembly.GetCallingAssembly()
+                Assembly.GetCallingAssembly(),
+                Assembly.GetExecutingAssembly()
             };
             assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -265,6 +291,60 @@ namespace Memenim.Scripting.Core
             var reference = MemenimScriptUtils.GetBindReference(value);
 
             reference.Value = defaultValue;
+        }
+
+        // ReSharper disable once RedundantAssignment
+        private static void BindSettingsImplementation(
+            ref MemenimScriptSettings value)
+        {
+            var targetType = typeof(MemenimScriptSettings);
+
+            var assemblies = new List<Assembly>
+            {
+                Assembly.GetEntryAssembly(),
+                Assembly.GetCallingAssembly(),
+                Assembly.GetExecutingAssembly()
+            };
+            assemblies.AddRange(AppDomain.CurrentDomain.GetAssemblies());
+
+            foreach (var assembly in assemblies)
+            {
+                if (assembly == null)
+                    continue;
+
+                var types = assembly.GetTypes()
+                    .Where(type => type.IsClass
+                                   && targetType.IsAssignableFrom(type)
+                                   && (type != targetType))
+                    .ToArray();
+
+                if (types.Length == 0)
+                    continue;
+
+                foreach (var type in types)
+                {
+                    MemenimScriptSettings target;
+
+                    try
+                    {
+                        target = (MemenimScriptSettings)Activator.CreateInstance(
+                            type, true);
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+
+                    if (target == null)
+                        continue;
+
+                    value = target;
+
+                    return;
+                }
+            }
+
+            value = new MemenimScriptSettings();
         }
 
 

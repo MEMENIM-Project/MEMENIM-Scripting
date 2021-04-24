@@ -4,12 +4,12 @@ using System.Text;
 
 namespace Memenim.Scripting.Core
 {
-    public sealed class MemenimVersion : IEquatable<MemenimVersion>
+    public sealed class ClientVersion : IEquatable<ClientVersion>
     {
-        public static readonly MemenimVersion MinValue;
-        public static readonly MemenimVersion MaxValue;
+        public static readonly ClientVersion MinValue;
+        public static readonly ClientVersion MaxValue;
 
-        public static readonly MemenimVersion Any;
+        public static readonly ClientVersion Any;
 
         public uint? Major { get; }
         public uint? Minor { get; }
@@ -37,18 +37,18 @@ namespace Memenim.Scripting.Core
             }
         }
 
-        static MemenimVersion()
+        static ClientVersion()
         {
-            MinValue = new MemenimVersion(
+            MinValue = new ClientVersion(
                 0, 0, 0);
-            MaxValue = new MemenimVersion(
+            MaxValue = new ClientVersion(
                 uint.MaxValue, uint.MaxValue, uint.MaxValue);
 
-            Any = new MemenimVersion(
+            Any = new ClientVersion(
                 null, null, null);
         }
 
-        public MemenimVersion(uint? major = null,
+        public ClientVersion(uint? major = null,
             uint? minor = null, uint? patch = null)
         {
             Major = major;
@@ -58,7 +58,7 @@ namespace Memenim.Scripting.Core
 
 
 
-        public int CompareTo(MemenimVersion other)
+        public int CompareTo(ClientVersion other)
         {
             if (other is null)
                 return 1;
@@ -118,14 +118,14 @@ namespace Memenim.Scripting.Core
 
 
 
-        public bool Equals(MemenimVersion other)
+        public bool Equals(ClientVersion other)
         {
             return CompareTo(other) == 0;
         }
 
         public override bool Equals(object other)
         {
-            if (!(other is MemenimVersion otherVersion))
+            if (!(other is ClientVersion otherVersion))
                 return false;
 
             return Equals(otherVersion);
@@ -177,7 +177,7 @@ namespace Memenim.Scripting.Core
             return null;
         }
 
-        public static MemenimVersion Parse(string version)
+        public static ClientVersion Parse(string version)
         {
             if (string.IsNullOrWhiteSpace(version))
                 return Any;
@@ -196,40 +196,40 @@ namespace Memenim.Scripting.Core
             if (components.Length > 2)
                 patch = ParseComponent(components[2]);
 
-            return new MemenimVersion(
+            return new ClientVersion(
                 major, minor, patch);
         }
 
 
 
-        public static bool operator ==(MemenimVersion left, MemenimVersion right)
+        public static bool operator ==(ClientVersion left, ClientVersion right)
         {
             if (left is null)
                 return right is null;
 
             return left.Equals(right);
         }
-        public static bool operator !=(MemenimVersion left, MemenimVersion right)
+        public static bool operator !=(ClientVersion left, ClientVersion right)
         {
             return !(left == right);
         }
 
-        public static bool operator <(MemenimVersion left, MemenimVersion right)
+        public static bool operator <(ClientVersion left, ClientVersion right)
         {
             return left is null ? !(right is null) : left.CompareTo(right) < 0;
             //return left is null || left.CompareTo(right) < 0;
         }
-        public static bool operator <=(MemenimVersion left, MemenimVersion right)
+        public static bool operator <=(ClientVersion left, ClientVersion right)
         {
             return left is null || left.CompareTo(right) <= 0;
             //return left is null ? !(right is null) : left.CompareTo(right) <= 0;
         }
 
-        public static bool operator >(MemenimVersion left, MemenimVersion right)
+        public static bool operator >(ClientVersion left, ClientVersion right)
         {
             return !(left is null) && left.CompareTo(right) > 0;
         }
-        public static bool operator >=(MemenimVersion left, MemenimVersion right)
+        public static bool operator >=(ClientVersion left, ClientVersion right)
         {
             return left is null ? right is null : left.CompareTo(right) >= 0;
         }

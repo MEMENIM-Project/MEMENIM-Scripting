@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Memenim.Scripting.Core
 {
-    [RequiredMemenimVersion("0.15.10", null)]
+    [RequiredClientVersion("0.15.10", null)]
     public abstract class MemenimScriptBase
     {
+        private readonly ReadOnlyDictionary<string, string> _settingsMap;
+
         public string OriginalName { get; }
         public string Name
         {
@@ -32,12 +35,83 @@ namespace Memenim.Scripting.Core
             string description = null, string company = null,
             IList<string> authors = null)
         {
+            _settingsMap = GetSettingsMap();
+
             OriginalName = NormalizeName(name);
             OriginalDescription = NormalizeDescription(description);
             Company = NormalizeCompany(company);
             Authors = NormalizeAuthors(authors);
             Commands = GetRegisteredCommands();
         }
+
+
+
+        internal static string GetBaseLocalizationKey()
+        {
+            return "[MemenimScript]_script";
+        }
+
+        private static string GetNameLocalizationKey()
+        {
+            var baseLocalizationKey =
+                GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}-name";
+        }
+
+        private static string GetDescriptionLocalizationKey()
+        {
+            var baseLocalizationKey =
+                GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}-description";
+        }
+
+
+
+        public static string GetLocalizationKey(string name)
+        {
+            var baseLocalizationKey =
+                GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}_[{name}]";
+        }
+
+        public static string GetLocalized(string name)
+        {
+            var key =
+                GetLocalizationKey(name);
+
+            return MemenimScript.Localization
+                .GetLocalized(key);
+        }
+        public static TOut GetLocalized<TOut>(string name)
+        {
+            var key =
+                GetLocalizationKey(name);
+
+            return MemenimScript.Localization
+                .GetLocalized<TOut>(key);
+        }
+
+        public static string TryGetLocalized(string name)
+        {
+            var key =
+                GetLocalizationKey(name);
+
+            return MemenimScript.Localization
+                .TryGetLocalized(key);
+        }
+        public static TOut TryGetLocalized<TOut>(string name)
+        {
+            var key =
+                GetLocalizationKey(name);
+
+            return MemenimScript.Localization
+                .TryGetLocalized<TOut>(key);
+        }
+
+
 
         private static string NormalizeName(string name)
         {
@@ -112,26 +186,7 @@ namespace Memenim.Scripting.Core
                 normalizedAuthors);
         }
 
-        internal string GetBaseLocalizationKey()
-        {
-            return "[MemenimScript]_script";
-        }
 
-        private string GetNameLocalizationKey()
-        {
-            var baseLocalizationKey =
-                GetBaseLocalizationKey();
-
-            return $"{baseLocalizationKey}-name";
-        }
-
-        private string GetDescriptionLocalizationKey()
-        {
-            var baseLocalizationKey =
-                GetBaseLocalizationKey();
-
-            return $"{baseLocalizationKey}-description";
-        }
 
         private string GetName()
         {
@@ -159,6 +214,34 @@ namespace Memenim.Scripting.Core
                 return localizedDescription;
 
             return OriginalDescription;
+        }
+
+        private ReadOnlyDictionary<string, string> GetSettingsMap()
+        {
+            const BindingFlags bindingFlags = BindingFlags.Instance
+                                              | BindingFlags.Public
+                                              | BindingFlags.NonPublic;
+
+            var settingsMap = new Dictionary<string, string>();
+
+            foreach (var propertyInfo in GetType().GetProperties(bindingFlags))
+            {
+                if (!Attribute.IsDefined(propertyInfo, typeof(MemenimScriptSettingAttribute)))
+                    continue;
+
+                var settingAttribute = (MemenimScriptSettingAttribute)propertyInfo
+                    .GetCustomAttribute(typeof(MemenimScriptSettingAttribute));
+
+                var settingName = settingAttribute?.Name;
+
+                if (string.IsNullOrWhiteSpace(settingName))
+                    settingName = propertyInfo.Name;
+
+                settingsMap.Add(propertyInfo.Name, settingName);
+            }
+
+            return new ReadOnlyDictionary<string, string>(
+                settingsMap);
         }
 
         private ReadOnlyDictionary<string, MemenimScriptCommand> GetRegisteredCommands()
@@ -191,21 +274,43 @@ namespace Memenim.Scripting.Core
 
 
 
-        public bool MemenimVersionSatisfied(MemenimVersion version)
+        public bool ClientVersionSatisfied(ClientVersion version)
         {
             var type = GetType();
 
-            if (!Attribute.IsDefined(type, typeof(RequiredMemenimVersionAttribute)))
+            if (!Attribute.IsDefined(type, typeof(RequiredClientVersionAttribute)))
                 type = typeof(MemenimScriptBase);
 
-            var requiredVersionAttribute = (RequiredMemenimVersionAttribute)type
-                .GetCustomAttribute(typeof(RequiredMemenimVersionAttribute));
+            var requiredVersionAttribute = (RequiredClientVersionAttribute)type
+                .GetCustomAttribute(typeof(RequiredClientVersionAttribute));
 
             if (requiredVersionAttribute == null)
                 return true;
 
             return requiredVersionAttribute.Range
                 .IsSatisfied(version);
+        }
+
+
+
+        protected T GetSetting<T>(
+            [CallerMemberName] string propertyName = "")
+        {
+            var settingName = _settingsMap[propertyName];
+
+            return MemenimScript.Settings
+                .Get<T>(settingName);
+        }
+
+        protected void SetSetting<T>(T value,
+            [CallerMemberName] string propertyName = "")
+        {
+            var settingName = _settingsMap[propertyName];
+
+            MemenimScript.Settings
+                .Set<T>(settingName, value);
+
+            MemenimScript.Settings.Save();
         }
     }
 }

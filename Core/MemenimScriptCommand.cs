@@ -100,7 +100,7 @@ namespace Memenim.Scripting.Core
         internal string GetBaseLocalizationKey()
         {
             var baseLocalizationKey =
-                Script?.GetBaseLocalizationKey();
+                MemenimScriptBase.GetBaseLocalizationKey();
 
             return $"{baseLocalizationKey}|[{Name}]_command";
         }
