@@ -9,8 +9,8 @@ namespace Memenim.Scripting.Core
 {
     public sealed class MemenimScriptCommand
     {
-        private MemenimScriptBase Script { get; }
-        private MethodInfo Method { get; }
+        private readonly MemenimScriptBase _script;
+        private readonly MethodInfo _method;
 
         public string Name { get; }
         public string OriginalDescription { get; }
@@ -27,22 +27,87 @@ namespace Memenim.Scripting.Core
             MemenimScriptBase script, MethodInfo method,
             string name, string description)
         {
-            Script = script;
-            Method = method;
+            _script = script;
+            _method = method;
 
             Name = NormalizeName(name);
             OriginalDescription = NormalizeDescription(description);
 
+            Parameters = GetParameters();
+        }
+
+
+
+        internal string GetBaseLocalizationKey()
+        {
+            var baseLocalizationKey =
+                MemenimScriptBase.GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}|[{Name}]_command";
+        }
+
+        private string GetDescriptionLocalizationKey()
+        {
+            var baseLocalizationKey =
+                GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}-description";
+        }
+
+
+
+        private static string NormalizeName(string name)
+        {
+            return name
+                .Trim(' ', '-', '_')
+                .Replace(' ', '-')
+                .Replace('_', '-');
+        }
+
+        private static string NormalizeDescription(string description)
+        {
+            var normalizedDescription = description;
+
+            if (normalizedDescription == null)
+                return string.Empty;
+
+            normalizedDescription = normalizedDescription
+                .Trim(' ');
+
+            if (string.IsNullOrEmpty(normalizedDescription))
+                return string.Empty;
+
+            return normalizedDescription;
+        }
+
+
+
+        private string GetDescription()
+        {
+            if (!MemenimScript.Localization.IsImplemented)
+                return OriginalDescription;
+
+            var localizedDescription = MemenimScript.Localization
+                .TryGetLocalized(GetDescriptionLocalizationKey());
+
+            if (!string.IsNullOrWhiteSpace(localizedDescription))
+                return localizedDescription;
+
+            return OriginalDescription;
+        }
+
+        private ReadOnlyCollection<MemenimScriptCommandParameter> GetParameters()
+        {
             var parameters = new List<MemenimScriptCommandParameter>();
 
-            foreach (var parameterInfo in Method.GetParameters())
+            foreach (var parameterInfo in _method.GetParameters())
             {
                 string parameterName = null;
                 string parameterDescription = null;
 
-                if (Attribute.IsDefined(Method, typeof(MemenimScriptCommandParameterAttribute)))
+                if (Attribute.IsDefined(_method, typeof(MemenimScriptCommandParameterAttribute)))
                 {
-                    var parameterAttribute = (MemenimScriptCommandParameterAttribute)Method
+                    var parameterAttribute = (MemenimScriptCommandParameterAttribute)_method
                         .GetCustomAttribute(typeof(MemenimScriptCommandParameterAttribute));
 
                     parameterName = parameterAttribute?.Name;
@@ -69,62 +134,8 @@ namespace Memenim.Scripting.Core
                     parameterDescription, parameterInfo.ParameterType));
             }
 
-            Parameters = new ReadOnlyCollection<MemenimScriptCommandParameter>(
+            return new ReadOnlyCollection<MemenimScriptCommandParameter>(
                 parameters);
-        }
-
-        private static string NormalizeName(string name)
-        {
-            return name
-                .Trim(' ', '_')
-                .Replace(' ', '-')
-                .Replace('_', '-');
-        }
-
-        private static string NormalizeDescription(string description)
-        {
-            var normalizedDescription = description;
-
-            if (normalizedDescription == null)
-                return string.Empty;
-
-            normalizedDescription = normalizedDescription
-                .Trim(' ');
-
-            if (string.IsNullOrEmpty(normalizedDescription))
-                return string.Empty;
-
-            return normalizedDescription;
-        }
-
-        internal string GetBaseLocalizationKey()
-        {
-            var baseLocalizationKey =
-                MemenimScriptBase.GetBaseLocalizationKey();
-
-            return $"{baseLocalizationKey}|[{Name}]_command";
-        }
-
-        private string GetDescriptionLocalizationKey()
-        {
-            var baseLocalizationKey =
-                GetBaseLocalizationKey();
-
-            return $"{baseLocalizationKey}-description";
-        }
-
-        private string GetDescription()
-        {
-            if (!MemenimScript.Localization.IsImplemented)
-                return OriginalDescription;
-
-            var localizedDescription = MemenimScript.Localization
-                .TryGetLocalized(GetDescriptionLocalizationKey());
-
-            if (!string.IsNullOrWhiteSpace(localizedDescription))
-                return localizedDescription;
-
-            return OriginalDescription;
         }
 
 
@@ -138,7 +149,7 @@ namespace Memenim.Scripting.Core
                 throw new ArgumentException(
                     $"Passed parameters count[{parameters.Count}] " +
                     $"does not match expected parameters count[{Parameters.Count}] " +
-                    $"for command[{Name}] in script[{Script.Name}]",
+                    $"for command[{Name}] in script[{_script.Name}]",
                     nameof(parameters));
             }
 
@@ -158,23 +169,23 @@ namespace Memenim.Scripting.Core
                     throw new InvalidCastException(
                         $"Passed parameter[Index={i}, Type={parameters[i].GetType().FullName ?? parameters[i].GetType().Name}] " +
                         $"cannot be converted to type[{Parameters[i].Type.FullName ?? Parameters[i].Type.Name}] of expected parameter[{Parameters[i].Name}] " +
-                        $"for command[{Name}] in script[{Script.Name}]",
+                        $"for command[{Name}] in script[{_script.Name}]",
                         ex);
                 }
 
                 parameters[i] = parameter;
             }
 
-            var source = Method.IsStatic
+            var source = _method.IsStatic
                 ? null
-                : Script;
+                : _script;
 
             var flags = BindingFlags.Public | BindingFlags.NonPublic;
-            flags |= Method.IsStatic
+            flags |= _method.IsStatic
                 ? BindingFlags.Static
                 : BindingFlags.Instance;
 
-            Method.Invoke(source, flags, null,
+            _method.Invoke(source, flags, null,
                 parameters.ToArray(), CultureInfo.InvariantCulture);
         }
     }

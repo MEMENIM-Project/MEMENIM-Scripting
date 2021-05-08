@@ -4,7 +4,7 @@ namespace Memenim.Scripting.Core
 {
     public sealed class MemenimScriptCommandParameter
     {
-        private MemenimScriptCommand Command { get; }
+        private readonly MemenimScriptCommand _command;
 
         public string Name { get; }
         public string OriginalDescription { get; }
@@ -21,17 +21,37 @@ namespace Memenim.Scripting.Core
             MemenimScriptCommand command, string name,
             string description, Type type)
         {
-            Command = command;
+            _command = command;
 
             Name = NormalizeName(name);
             OriginalDescription = NormalizeDescription(description);
             Type = type;
         }
 
+
+
+        internal string GetBaseLocalizationKey()
+        {
+            var baseLocalizationKey =
+                _command?.GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}|[{Name}]_parameter";
+        }
+
+        private string GetDescriptionLocalizationKey()
+        {
+            var baseLocalizationKey =
+                GetBaseLocalizationKey();
+
+            return $"{baseLocalizationKey}-description";
+        }
+
+
+
         private static string NormalizeName(string name)
         {
             return name
-                .Trim(' ', '_')
+                .Trim(' ', '-', '_')
                 .Replace(' ', '-')
                 .Replace('_', '-');
         }
@@ -52,21 +72,7 @@ namespace Memenim.Scripting.Core
             return normalizedDescription;
         }
 
-        internal string GetBaseLocalizationKey()
-        {
-            var baseLocalizationKey =
-                Command?.GetBaseLocalizationKey();
 
-            return $"{baseLocalizationKey}|[{Name}]_parameter";
-        }
-
-        private string GetDescriptionLocalizationKey()
-        {
-            var baseLocalizationKey =
-                GetBaseLocalizationKey();
-
-            return $"{baseLocalizationKey}-description";
-        }
 
         private string GetDescription()
         {

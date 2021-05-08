@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -30,6 +31,8 @@ namespace Memenim.Scripting.Core
         public string Company { get; }
         public ReadOnlyCollection<string> Authors { get; }
         public ReadOnlyDictionary<string, MemenimScriptCommand> Commands { get; }
+        public ReadOnlyDictionary<string, MemenimScriptRuntimeSettingCategory> RuntimeSettingsCategories { get; }
+        public ReadOnlyDictionary<string, ReadOnlyDictionary<string, MemenimScriptRuntimeSetting>> RuntimeSettings { get; }
 
         protected MemenimScriptBase(string name = null,
             string description = null, string company = null,
@@ -41,7 +44,9 @@ namespace Memenim.Scripting.Core
             OriginalDescription = NormalizeDescription(description);
             Company = NormalizeCompany(company);
             Authors = NormalizeAuthors(authors);
+
             Commands = GetRegisteredCommands();
+            (RuntimeSettingsCategories, RuntimeSettings) = GetRegisteredRuntimeSettings();
         }
 
 
@@ -270,6 +275,100 @@ namespace Memenim.Scripting.Core
 
             return new ReadOnlyDictionary<string, MemenimScriptCommand>(
                 commands);
+        }
+
+        private (ReadOnlyDictionary<string, MemenimScriptRuntimeSettingCategory> RuntimeSettingsCategories,
+            ReadOnlyDictionary<string, ReadOnlyDictionary<string, MemenimScriptRuntimeSetting>> RuntimeSettings)
+            GetRegisteredRuntimeSettings()
+        {
+            const BindingFlags bindingFlags = BindingFlags.Instance
+                                              | BindingFlags.Public
+                                              | BindingFlags.NonPublic;
+
+            var runtimeSettingsCategories = new Dictionary<string, MemenimScriptRuntimeSettingCategory>();
+            var runtimeSettings = new Dictionary<string, Dictionary<string, MemenimScriptRuntimeSetting>>();
+
+            string runtimeSettingCategoryName = null;
+
+            foreach (var propertyInfo in GetType().GetProperties(bindingFlags))
+            {
+                if (Attribute.IsDefined(propertyInfo, typeof(MemenimScriptRuntimeSettingCategoryAttribute)))
+                {
+                    var runtimeSettingCategoryAttribute = (MemenimScriptRuntimeSettingCategoryAttribute)propertyInfo
+                        .GetCustomAttribute(typeof(MemenimScriptRuntimeSettingCategoryAttribute));
+
+                    var runtimeSettingCategory = new MemenimScriptRuntimeSettingCategory(
+                        !string.IsNullOrWhiteSpace(runtimeSettingCategoryAttribute?.Name)
+                            ? runtimeSettingCategoryAttribute.Name
+                            : "General");
+
+                    if (!string.IsNullOrEmpty(runtimeSettingCategory.OriginalName)
+                        && runtimeSettingCategory.OriginalName != "Unknown")
+                    {
+                        runtimeSettingCategoryName = runtimeSettingCategory.OriginalName;
+
+                        if (!runtimeSettingsCategories.ContainsKey(runtimeSettingCategoryName))
+                        {
+                            runtimeSettingsCategories.Add(runtimeSettingCategoryName,
+                                runtimeSettingCategory);
+                            runtimeSettings.Add(runtimeSettingCategoryName,
+                                new Dictionary<string, MemenimScriptRuntimeSetting>());
+                        }
+                    }
+                }
+                else if (string.IsNullOrWhiteSpace(runtimeSettingCategoryName))
+                {
+                    var runtimeSettingCategory = new MemenimScriptRuntimeSettingCategory(
+                        "General");
+
+                    runtimeSettingCategoryName = runtimeSettingCategory.OriginalName;
+
+                    if (!runtimeSettingsCategories.ContainsKey(runtimeSettingCategoryName))
+                    {
+                        runtimeSettingsCategories.Add(runtimeSettingCategoryName,
+                            runtimeSettingCategory);
+                        runtimeSettings.Add(runtimeSettingCategoryName,
+                            new Dictionary<string, MemenimScriptRuntimeSetting>());
+                    }
+                }
+
+                if (!Attribute.IsDefined(propertyInfo, typeof(MemenimScriptRuntimeSettingAttribute)))
+                    continue;
+
+                var runtimeSettingAttribute = (MemenimScriptRuntimeSettingAttribute)propertyInfo
+                    .GetCustomAttribute(typeof(MemenimScriptRuntimeSettingAttribute));
+
+                var runtimeSettingName = runtimeSettingAttribute?.Name;
+                var runtimeSettingDescription = runtimeSettingAttribute?.Description;
+
+                if (string.IsNullOrWhiteSpace(runtimeSettingName))
+                    runtimeSettingName = propertyInfo.Name;
+                if (string.IsNullOrWhiteSpace(runtimeSettingDescription))
+                    runtimeSettingDescription = string.Empty;
+
+                var runtimeSetting = new MemenimScriptRuntimeSetting(
+                    this, propertyInfo, runtimeSettingName, runtimeSettingDescription);
+
+                if (runtimeSettings[runtimeSettingCategoryName ?? "General"].ContainsKey(runtimeSetting.OriginalName))
+                    continue;
+
+                runtimeSettings[runtimeSettingCategoryName ?? "General"].Add(
+                    runtimeSetting.OriginalName, runtimeSetting);
+            }
+
+            var runtimeSettingsCategoriesReadOnly =
+                new ReadOnlyDictionary<string, MemenimScriptRuntimeSettingCategory>(
+                    runtimeSettingsCategories);
+            var runtimeSettingsReadOnly =
+                new ReadOnlyDictionary<string, ReadOnlyDictionary<string, MemenimScriptRuntimeSetting>>(
+                    runtimeSettings
+                        .Select(runtimeSettingsPair =>
+                            new KeyValuePair<string, ReadOnlyDictionary<string, MemenimScriptRuntimeSetting>>(
+                                runtimeSettingsPair.Key, new ReadOnlyDictionary<string, MemenimScriptRuntimeSetting>(runtimeSettingsPair.Value)))
+                        .ToDictionary(runtimeSettingsPair => runtimeSettingsPair.Key,
+                            runtimeSettingsPair => runtimeSettingsPair.Value));
+
+            return (runtimeSettingsCategoriesReadOnly, runtimeSettingsReadOnly);
         }
 
 
