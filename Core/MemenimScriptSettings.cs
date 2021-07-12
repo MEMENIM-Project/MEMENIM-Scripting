@@ -46,15 +46,13 @@ namespace Memenim.Scripting.Core
 
 
 
-        private new void Load(bool appVersionCheck = true,
-            SettingsLoadOptions options = SettingsLoadOptions.None)
+        public new void Load(
+            SettingsLoadOptions options = SettingsLoadOptions.None,
+            bool appVersionCheck = false,
+            SettingsLoadOptions appVersionCheckOptions = SettingsLoadOptions.None)
         {
-            base.Load(appVersionCheck, options);
-        }
-
-        public void Load(SettingsLoadOptions options = SettingsLoadOptions.RemoveUnused)
-        {
-            Load(false, options);
+            base.Load(options, false,
+                SettingsLoadOptions.None);
         }
 
         public new void Save()
