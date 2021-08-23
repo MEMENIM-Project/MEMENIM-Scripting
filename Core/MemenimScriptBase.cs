@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Memenim.Scripting.Core
 {
-    [RequiredClientVersion("0.15.10", null)]
+    [RequiredClientVersion("0.18.0", null)]
     public abstract class MemenimScriptBase
     {
         private readonly ReadOnlyDictionary<string, string> _settingsMap;
@@ -90,30 +90,15 @@ namespace Memenim.Scripting.Core
             return MemenimScript.Localization
                 .GetLocalized(key);
         }
-        public static TOut GetLocalized<TOut>(string name)
+
+        public static bool TryGetLocalized(
+            string name, out string value)
         {
             var key =
                 GetLocalizationKey(name);
 
             return MemenimScript.Localization
-                .GetLocalized<TOut>(key);
-        }
-
-        public static string TryGetLocalized(string name)
-        {
-            var key =
-                GetLocalizationKey(name);
-
-            return MemenimScript.Localization
-                .TryGetLocalized(key);
-        }
-        public static TOut TryGetLocalized<TOut>(string name)
-        {
-            var key =
-                GetLocalizationKey(name);
-
-            return MemenimScript.Localization
-                .TryGetLocalized<TOut>(key);
+                .TryGetLocalized(key, out value);
         }
 
 
@@ -198,11 +183,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalName;
 
-            var localizedName = MemenimScript.Localization
-                .TryGetLocalized(GetNameLocalizationKey());
+            var key = GetNameLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedName))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedName)
+                && !string.IsNullOrWhiteSpace(localizedName))
+            {
                 return localizedName;
+            }
 
             return OriginalName;
         }
@@ -212,11 +199,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalDescription;
 
-            var localizedDescription = MemenimScript.Localization
-                .TryGetLocalized(GetDescriptionLocalizationKey());
+            var key = GetDescriptionLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedDescription))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedDescription)
+                && !string.IsNullOrWhiteSpace(localizedDescription))
+            {
                 return localizedDescription;
+            }
 
             return OriginalDescription;
         }
@@ -227,7 +216,7 @@ namespace Memenim.Scripting.Core
                                               | BindingFlags.Public
                                               | BindingFlags.NonPublic;
 
-            var settingsMap = new Dictionary<string, string>();
+            var settingsMap = new Dictionary<string, string>(5);
 
             foreach (var propertyInfo in GetType().GetProperties(bindingFlags))
             {
@@ -251,7 +240,7 @@ namespace Memenim.Scripting.Core
 
         private ReadOnlyDictionary<string, MemenimScriptCommand> GetRegisteredCommands()
         {
-            var commands = new Dictionary<string, MemenimScriptCommand>();
+            var commands = new Dictionary<string, MemenimScriptCommand>(5);
 
             foreach (var methodInfo in GetType().GetMethods())
             {
@@ -285,8 +274,8 @@ namespace Memenim.Scripting.Core
                                               | BindingFlags.Public
                                               | BindingFlags.NonPublic;
 
-            var runtimeSettingsCategories = new Dictionary<string, MemenimScriptRuntimeSettingCategory>();
-            var runtimeSettings = new Dictionary<string, Dictionary<string, MemenimScriptRuntimeSetting>>();
+            var runtimeSettingsCategories = new Dictionary<string, MemenimScriptRuntimeSettingCategory>(5);
+            var runtimeSettings = new Dictionary<string, Dictionary<string, MemenimScriptRuntimeSetting>>(5);
 
             string runtimeSettingCategoryName = null;
 

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Memenim.Scripting.Core
 {
-    public class MemenimScriptRuntimeSetting
+    public sealed class MemenimScriptRuntimeSetting
     {
         private readonly MemenimScriptBase _script;
         private readonly PropertyInfo _property;
@@ -118,11 +118,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalName;
 
-            var localizedName = MemenimScript.Localization
-                .TryGetLocalized(GetNameLocalizationKey());
+            var key = GetNameLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedName))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedName)
+                && !string.IsNullOrWhiteSpace(localizedName))
+            {
                 return localizedName;
+            }
 
             return OriginalName;
         }
@@ -132,11 +134,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalDescription;
 
-            var localizedDescription = MemenimScript.Localization
-                .TryGetLocalized(GetDescriptionLocalizationKey());
+            var key = GetDescriptionLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedDescription))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedDescription)
+                && !string.IsNullOrWhiteSpace(localizedDescription))
+            {
                 return localizedDescription;
+            }
 
             return OriginalDescription;
         }

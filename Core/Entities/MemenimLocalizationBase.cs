@@ -26,10 +26,12 @@ namespace Memenim.Scripting.Core.Entities
             BindTarget = MemenimScriptUtils.GetBindTarget(BaseType);
         }
 
-        public abstract string GetLocalized(string key);
-        public abstract TOut GetLocalized<TOut>(string key);
 
-        public abstract string TryGetLocalized(string key);
-        public abstract TOut TryGetLocalized<TOut>(string key);
+
+        public abstract string GetLocalized(
+            string key);
+
+        public abstract bool TryGetLocalized(
+            string key, out string value);
     }
 }

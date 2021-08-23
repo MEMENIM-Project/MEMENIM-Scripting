@@ -79,11 +79,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalDescription;
 
-            var localizedDescription = MemenimScript.Localization
-                .TryGetLocalized(GetDescriptionLocalizationKey());
+            var key = GetDescriptionLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedDescription))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedDescription)
+                && !string.IsNullOrWhiteSpace(localizedDescription))
+            {
                 return localizedDescription;
+            }
 
             return OriginalDescription;
         }

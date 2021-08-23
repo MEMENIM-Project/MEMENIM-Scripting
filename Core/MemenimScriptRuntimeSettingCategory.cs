@@ -2,7 +2,7 @@
 
 namespace Memenim.Scripting.Core
 {
-    public class MemenimScriptRuntimeSettingCategory
+    public sealed class MemenimScriptRuntimeSettingCategory
     {
         public string OriginalName { get; }
         public string Name
@@ -62,11 +62,13 @@ namespace Memenim.Scripting.Core
             if (!MemenimScript.Localization.IsImplemented)
                 return OriginalName;
 
-            var localizedName = MemenimScript.Localization
-                .TryGetLocalized(GetNameLocalizationKey());
+            var key = GetNameLocalizationKey();
 
-            if (!string.IsNullOrWhiteSpace(localizedName))
+            if (MemenimScript.Localization.TryGetLocalized(key, out var localizedName)
+                && !string.IsNullOrWhiteSpace(localizedName))
+            {
                 return localizedName;
+            }
 
             return OriginalName;
         }

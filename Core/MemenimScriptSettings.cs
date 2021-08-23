@@ -30,7 +30,7 @@ namespace Memenim.Scripting.Core
             const BindingFlags bindingFlags = BindingFlags.Instance
                                               | BindingFlags.Public;
 
-            var settings = new Dictionary<string, PropertyInfo>();
+            var settings = new Dictionary<string, PropertyInfo>(5);
 
             foreach (var propertyInfo in GetType().GetProperties(bindingFlags))
             {
@@ -46,6 +46,8 @@ namespace Memenim.Scripting.Core
 
 
 
+#pragma warning disable IDE0060 // Удалите неиспользуемый параметр
+        // ReSharper disable UnusedParameter.Global
         public new void Load(
             SettingsLoadOptions options = SettingsLoadOptions.None,
             bool appVersionCheck = false,
@@ -54,6 +56,8 @@ namespace Memenim.Scripting.Core
             base.Load(options, false,
                 SettingsLoadOptions.None);
         }
+        // ReSharper enable UnusedParameter.Global
+#pragma warning restore IDE0060 // Удалите неиспользуемый параметр
 
         public new void Save()
         {
